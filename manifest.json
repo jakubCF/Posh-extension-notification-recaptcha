@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "reCAPTCHA Notifier",
+  "version": "1.0",
+  "description": "Alerts the user when a reCAPTCHA iframe appears on a specific tab.",
+  "permissions": [
+    "notifications",
+    "scripting",
+    "tabs",
+    "storage" 
+  ],
+  "host_permissions": [
+    "https://poshmark.ca/*",
+    "https://www.poshmark.ca/*",
+    "https://poshmark.com/*",
+    "https://www.poshmark.com/*" 
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"], 
+      "js": ["content.js"]
+    }
+  ]
+}
