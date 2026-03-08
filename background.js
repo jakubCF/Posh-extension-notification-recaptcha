@@ -1,19 +1,23 @@
 // background.js
+// Cross-browser compatible extension (Chrome & Firefox)
 
+// --- BROWSER API COMPATIBILITY ---
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
 // --- STATE PERSISTENCE FUNCTIONS ---
 async function getNotifiedTabs() {
-    const data = await chrome.storage.session.get('notifiedTabs');
+    // Use 'local' storage for better Firefox compatibility (session storage has limited support)
+    const data = await browserAPI.storage.local.get('notifiedTabs');
     return new Set(data.notifiedTabs || []);
 }
 
 async function saveNotifiedTabs(notifiedSet) {
-    await chrome.storage.session.set({ notifiedTabs: Array.from(notifiedSet) });
+    await browserAPI.storage.local.set({ notifiedTabs: Array.from(notifiedSet) });
 }
 // ---------------------------------
 
 // --- CORE MESSAGE LISTENER (WAKES THE WORKER) ---
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   try {
     const tabId = sender.tab.id;
     console.log(`[SW] Message received from tab ${tabId}. Action: ${request.action}`); // Log 1
@@ -32,7 +36,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         if (!notifiedTabs.has(tabId)) {
         console.log(`[SW] Creating notification for tab ${tabId}.`); // Log 2
         // Send the desktop notification
-        chrome.notifications.create('recaptcha-alert-' + tabId, {
+        browserAPI.notifications.create('recaptcha-alert-' + tabId, {
             type: 'basic',
             iconUrl: 'icon.png',
             title: '🚨 CAPTCHA Action Required!',
@@ -56,7 +60,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 // --- NOTIFICATION & TAB MANAGEMENT LISTENERS ---
 
 // Listener to remove the tab from the 'notified' list when it's closed
-chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     const notifiedTabs = await getNotifiedTabs();
     if (notifiedTabs.delete(tabId)) {
         await saveNotifiedTabs(notifiedTabs);
@@ -64,19 +68,19 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 });
 
 // Listener to switch to the tab when the user clicks the notification
-chrome.notifications.onClicked.addListener(async (notificationId) => {
+browserAPI.notifications.onClicked.addListener(async (notificationId) => {
     const tabId = parseInt(notificationId.split('-').pop());
 
     if (tabId && !isNaN(tabId)) {
         // Switch the user back to the tab
-        const tab = await chrome.tabs.get(tabId);
+        const tab = await browserAPI.tabs.get(tabId);
         if (tab) {
-             chrome.tabs.update(tabId, { active: true });
-             chrome.windows.update(tab.windowId, { focused: true });
+             browserAPI.tabs.update(tabId, { active: true });
+             browserAPI.windows.update(tab.windowId, { focused: true });
         }
         
         // Clear the notification
-        chrome.notifications.clear(notificationId);
+        browserAPI.notifications.clear(notificationId);
         
         // Update the state to allow future notifications if the reCAPTCHA reappears
         const notifiedTabs = await getNotifiedTabs();

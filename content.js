@@ -1,3 +1,9 @@
+// content.js
+// Cross-browser compatible extension (Chrome & Firefox)
+
+// --- BROWSER API COMPATIBILITY ---
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
 // Function to handle the Try Again button click
 function clickTryAgainButton() {
   // Use the specific attributes to select the button
@@ -9,7 +15,7 @@ function clickTryAgainButton() {
     console.log('Try Again button clicked automatically.');
     // Send a confirmation message to the background script (optional)
     try {
-        chrome.runtime.sendMessage({
+        browserAPI.runtime.sendMessage({
           action: "buttonClicked",
           tabTitle: document.title
         });
@@ -35,7 +41,7 @@ function checkRecaptcha() {
       console.log('reCAPTCHA iframe detected on the page.');
       // If found, notify the user (since the automated "Try Again" failed)
       try {
-          chrome.runtime.sendMessage({
+          browserAPI.runtime.sendMessage({
             action: "recaptchaFound",
             tabUrl: window.location.href,
             tabTitle: document.title,
